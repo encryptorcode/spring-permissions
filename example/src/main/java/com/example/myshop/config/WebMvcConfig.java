@@ -1,8 +1,7 @@
 package com.example.myshop.config;
 
-import com.google.gson.Gson;
 import io.github.encryptorcode.permissions.service.PermissionInterceptor;
-import io.github.encryptorcode.permissions.service.PermissionVariableResolver;
+import io.github.encryptorcode.permissions.service.VariablesResolver;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
@@ -45,21 +44,9 @@ public class WebMvcConfig implements WebMvcConfigurer {
     }
 
     @Bean
-    public PermissionVariableResolver getPermissionVariableResolver() {
-        return new PermissionVariableResolver();
+    public VariablesResolver getPermissionVariableResolver() {
+        return new VariablesResolver();
     }
-
-//    @Bean
-//    public ViewResolver internalResourceViewResolver() {
-//        InternalResourceViewResolver viewResolver = new InternalResourceViewResolver();
-//        viewResolver.setPrefix("/static/");
-//        return viewResolver;
-//    }
-
-//    @Override
-//    public void addResourceHandlers(ResourceHandlerRegistry registry) {
-//        registry.addResourceHandler("/**").addResourceLocations("/WEB-INF/static/");
-//    }
 
     @Override
     public void configureContentNegotiation(ContentNegotiationConfigurer configurer) {

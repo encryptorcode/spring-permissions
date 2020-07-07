@@ -3,8 +3,9 @@ package com.example.myshop.controllers;
 import com.example.myshop.config.JsonRequestBody;
 import com.example.myshop.entities.Product;
 import com.example.myshop.services.ProductService;
-import io.github.encryptorcode.permissions.abstracts.Permission;
-import io.github.encryptorcode.permissions.abstracts.PermissionVariable;
+import io.github.encryptorcode.permissions.annotations.HandlerVariable;
+import io.github.encryptorcode.permissions.annotations.Permission;
+import io.github.encryptorcode.permissions.annotations.Permissions;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -18,15 +19,16 @@ public class ProductsController {
     ProductService service = new ProductService();
 
     @RequestMapping(path = "/{id}", method = RequestMethod.GET)
-    @Permission(name = "product.view", args = "${path.id}")
+    @Permission(id = "product.view", args = {"${path.id}"})
     @ResponseBody
     public Product getProduct(
-            @PermissionVariable("product") Product product
+            @HandlerVariable("product") Product product
     ) {
         return product;
     }
 
     @RequestMapping(path = "", method = RequestMethod.POST)
+    @Permission(id = "product.create")
     @ResponseBody
     public void createProduct(
             @JsonRequestBody Product product
@@ -35,7 +37,7 @@ public class ProductsController {
     }
 
     @RequestMapping(path = "/{id}", method = RequestMethod.PUT)
-    @Permission(name = "product.edit", args = {"${path.id}"})
+    @Permission(id = "product.edit", args = {"${path.id}"})
     @ResponseBody
     public void updateProduct(
             @PathVariable("id") Long id,
@@ -45,7 +47,7 @@ public class ProductsController {
     }
 
     @RequestMapping(path = "/{id}", method = RequestMethod.DELETE)
-    @Permission(name = "product.edit", args = {"${path.id}"})
+    @Permission(id = "product.edit", args = {"${path.id}"})
     @ResponseBody
     public void deleteProduct(
             @PathVariable("id") Long id

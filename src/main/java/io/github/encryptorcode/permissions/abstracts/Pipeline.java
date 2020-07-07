@@ -1,5 +1,5 @@
 package io.github.encryptorcode.permissions.abstracts;
 
-public interface Getter<T> {
-    T get();
+public interface Pipeline<T> {
+    T pipe();
 }

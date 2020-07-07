@@ -1,7 +1,7 @@
 package io.github.encryptorcode.permissions.service;
 
-import io.github.encryptorcode.permissions.abstracts.Permission;
-import io.github.encryptorcode.permissions.abstracts.Permissions;
+import io.github.encryptorcode.permissions.annotations.Permission;
+import io.github.encryptorcode.permissions.annotations.Permissions;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.handler.HandlerInterceptorAdapter;
 
@@ -11,6 +11,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+/**
+ * This interceptor helps to validate permissions before actually invoking the controller method
+ */
 public class PermissionInterceptor extends HandlerInterceptorAdapter {
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
@@ -38,23 +41,13 @@ public class PermissionInterceptor extends HandlerInterceptorAdapter {
             if (permissionsClassAnnotation != null) {
                 permissions.addAll(Arrays.asList(permissionsClassAnnotation.value()));
             }
-            if(permissions.size() > 0) {
-                return invoke(request, response, permissions);
-            } else {
+            if (permissions.isEmpty()) {
                 return true;
+            } else {
+                return PermissionManager.handle(request, response, permissions);
             }
         }
         return true;
     }
 
-    private boolean invoke(HttpServletRequest request, HttpServletResponse response, List<Permission> permissions) throws Exception {
-        StorageHandler storageHandler = new StorageHandler();
-        for (Permission permission : permissions) {
-            if (!PermissionsManager.invoke(request, permission, storageHandler)) {
-                return false;
-            }
-        }
-        request.setAttribute(StorageHandler.class.getName(), storageHandler);
-        return true;
-    }
 }
