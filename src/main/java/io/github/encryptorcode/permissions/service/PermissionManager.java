@@ -3,6 +3,7 @@ package io.github.encryptorcode.permissions.service;
 import io.github.encryptorcode.permissions.abstracts.PermissionHandler;
 import io.github.encryptorcode.permissions.annotations.Handler;
 import io.github.encryptorcode.permissions.annotations.Permission;
+import io.github.encryptorcode.permissions.annotations.Permissions;
 import io.github.encryptorcode.permissions.entities.HandlerData;
 import io.github.encryptorcode.permissions.entities.PermissionManagerException;
 import org.springframework.beans.SimpleTypeConverter;
@@ -47,6 +48,18 @@ public class PermissionManager {
     public static void init(String... packageNames) {
         ReflectionsHelper.init(packageNames);
         Set<Class<? extends PermissionHandler>> permissionHandlers = ReflectionsHelper.getSubClassesOf(PermissionHandler.class);
+        validateHandlers(permissionHandlers);
+
+        Set<Method> permissionVariableMethods = ReflectionsHelper.getMethodsAnnotatedWith(Permission.class);
+        validatePermissionUsages(permissionVariableMethods);
+    }
+
+    /**
+     * Validates all permission handler implementations
+     *
+     * @param permissionHandlers permission handlers
+     */
+    private static void validateHandlers(Set<Class<? extends PermissionHandler>> permissionHandlers) {
         for (Class<? extends PermissionHandler> permissionHandler : permissionHandlers) {
             Method[] methods = permissionHandler.getMethods();
             for (Method method : methods) {
@@ -64,43 +77,73 @@ public class PermissionManager {
                         throw new PermissionManagerException("Failed to initialize PermissionManager.\n" +
                                 "Permission handler is defined twice: " + handler.id());
                     }
+                    validateHandlerConstructor(method.getDeclaringClass());
                 }
             }
         }
+    }
 
-        Set<Method> permissionVariableMethods = ReflectionsHelper.getMethodsAnnotatedWith(Permission.class);
+    /**
+     * Validates constructor implementations of permission handler implementation
+     *
+     * @param handlerClazz permission handler class
+     */
+    private static void validateHandlerConstructor(Class<?> handlerClazz) {
+        boolean hasVariableHandlerConstructor = false;
+        Constructor<?>[] constructors = handlerClazz.getConstructors();
+        for (Constructor<?> constructor : constructors) {
+            Parameter[] parameters = constructor.getParameters();
+            if (parameters.length == 1 && parameters[0].getType() == Variables.class) {
+                hasVariableHandlerConstructor = true;
+                break;
+            }
+        }
+        if (!hasVariableHandlerConstructor) {
+            throw new PermissionManagerException("Failed to initialize PermissionManager.\n" +
+                    "Constructor with variables is not found.\n" +
+                    "Class: " + handlerClazz);
+        }
+    }
+
+    /**
+     * Validates usages of {@link Permission @Permission} annotations in controllers
+     *
+     * @param permissionVariableMethods method in which @Permission annotation is being used
+     */
+    private static void validatePermissionUsages(Set<Method> permissionVariableMethods) {
         for (Method method : permissionVariableMethods) {
             Permission permission = method.getAnnotation(Permission.class);
             if (permission != null) {
-                HandlerData handlerData = PERMISSION_HANDLERS.get(permission.id());
-                if (handlerData == null) {
-                    throw new PermissionManagerException("Failed to initialize PermissionManager.\n" +
-                            "Invalid permission id specified in controller method.\n" +
-                            "Method: " + method);
-                }
-
-                if (handlerData.getMethod().getParameters().length != permission.args().length) {
-                    throw new PermissionManagerException("Failed to initialize PermissionManager.\n" +
-                            "Wrong number of arguments passed in controller annotation\n" +
-                            "Annotation: " + permission + "\n" +
-                            "Method: " + method);
-                }
-
-                boolean hasVariableHandlerConstructor = false;
-                Constructor<?>[] constructors = handlerData.getMethod().getDeclaringClass().getConstructors();
-                for (Constructor<?> constructor : constructors) {
-                    Parameter[] parameters = constructor.getParameters();
-                    if (parameters.length == 1 && parameters[0].getType() == Variables.class) {
-                        hasVariableHandlerConstructor = true;
-                        break;
-                    }
-                }
-                if (!hasVariableHandlerConstructor) {
-                    throw new PermissionManagerException("Failed to initialize PermissionManager.\n" +
-                            "Constructor with variables is not found.\n" +
-                            "Class: " + handlerData.getMethod().getDeclaringClass());
+                validatePermissionAnnotationUsage(method, permission);
+            }
+            Permissions permissions = method.getAnnotation(Permissions.class);
+            if (permissions != null) {
+                for (Permission subPermission : permissions.value()) {
+                    validatePermissionAnnotationUsage(method, subPermission);
                 }
             }
+        }
+    }
+
+    /**
+     * Validates individual permission annotation usage
+     *
+     * @param method     method where permission annotation is being used
+     * @param permission annotation class
+     */
+    private static void validatePermissionAnnotationUsage(Method method, Permission permission) {
+        HandlerData handlerData = PERMISSION_HANDLERS.get(permission.id());
+        if (handlerData == null) {
+            throw new PermissionManagerException("Failed to initialize PermissionManager.\n" +
+                    "Invalid permission id specified in controller method.\n" +
+                    "Method: " + method);
+        }
+
+        if (handlerData.getMethod().getParameters().length != permission.args().length) {
+            throw new PermissionManagerException("Failed to initialize PermissionManager.\n" +
+                    "Wrong number of arguments passed in controller annotation\n" +
+                    "Annotation: " + permission + "\n" +
+                    "Method: " + method);
         }
     }
 
