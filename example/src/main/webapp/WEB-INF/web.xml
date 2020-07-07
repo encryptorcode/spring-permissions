@@ -1,0 +1,6 @@
+<web-app version="3.1">
+    <display-name>Spring App</display-name>
+    <listener>
+        <listener-class>com.example.myshop.config.ServerStartupListener</listener-class>
+    </listener>
+</web-app>
